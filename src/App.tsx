@@ -219,7 +219,7 @@ export default function App() {
   const [problem, setProblem] = useState<Problem | null>(null);
   const [highestLevel, setHighestLevel] = useState<number>(() => {
     const saved = localStorage.getItem('chameleonHighestLevel');
-    return saved ? parseInt(saved, 10) : 1; // Start at 1
+    return saved ? parseInt(saved, 10) : 0; // Initialize with 0
   });
 
   const mouthRef = useRef<SVGCircleElement>(null);
@@ -355,12 +355,9 @@ export default function App() {
 
   if (gameState === 'finished') {
     const passed = correctFirstTry >= 7;
-    const isNewUnlock = passed && level === highestLevel;
-
-    if (isNewUnlock) {
-      const newHighest = level + 1;
-      setHighestLevel(newHighest);
-      localStorage.setItem('chameleonHighestLevel', newHighest.toString());
+    if (passed && level > highestLevel) {
+      setHighestLevel(level);
+      localStorage.setItem('chameleonHighestLevel', level.toString());
     }
 
     return (
