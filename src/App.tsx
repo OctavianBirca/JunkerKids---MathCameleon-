@@ -214,10 +214,12 @@ export default function App() {
   const [gameState, setGameState] = useState<'menu' | 'playing' | 'finished'>('menu');
   const [level, setLevel] = useState<number>(1);
   const [testCount, setTestCount] = useState<number>(0);
+  const [correctFirstTry, setCorrectFirstTry] = useState<number>(0);
+  const [mistakeMade, setMistakeMade] = useState<boolean>(false);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [highestLevel, setHighestLevel] = useState<number>(() => {
     const saved = localStorage.getItem('chameleonHighestLevel');
-    return saved ? parseInt(saved, 10) : 0;
+    return saved ? parseInt(saved, 10) : 1; // Start at 1
   });
 
   const mouthRef = useRef<SVGCircleElement>(null);
@@ -269,6 +271,8 @@ export default function App() {
   const startGame = (selectedLevel: number) => {
     setLevel(selectedLevel);
     setTestCount(0);
+    setCorrectFirstTry(0);
+    setMistakeMade(false);
     setProblem(generateProblem(selectedLevel));
     setGameState('playing');
   };
@@ -277,6 +281,10 @@ export default function App() {
     if (isAnimating || !problem) return;
 
     if (option === problem.answer) {
+      if (!mistakeMade) {
+        setCorrectFirstTry(prev => prev + 1);
+      }
+      setMistakeMade(false);
       setIsAnimating(true);
       const rect = e.currentTarget.getBoundingClientRect();
       const targetX = rect.left + rect.width / 2;
@@ -291,10 +299,6 @@ export default function App() {
         setTimeout(() => {
           if (testCount + 1 >= 10) {
             setGameState('finished');
-            if (level > highestLevel) {
-              setHighestLevel(level);
-              localStorage.setItem('chameleonHighestLevel', level.toString());
-            }
           } else {
             setTestCount(prev => prev + 1);
             setProblem(generateProblem(level));
@@ -303,6 +307,9 @@ export default function App() {
           setIsAnimating(false);
         }, 300);
       }, 200);
+    } else {
+      setMistakeMade(true);
+      // Optional: Add visual feedback for wrong answer
     }
   };
 
@@ -328,16 +335,20 @@ export default function App() {
           <p className="text-xl text-gray-600 mb-8">Choisis un niveau pour commencer !</p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {levels.map(l => (
-              <button
-                key={l.id}
-                onClick={() => startGame(l.id)}
-                className={`py-3 px-4 text-white text-lg font-bold rounded-xl transition-all cursor-pointer relative z-50 ${getLevelColor(l.id)}`}
-                style={{ touchAction: 'manipulation' }}
-              >
-                {l.text}
-              </button>
-            ))}
+            {levels.map(l => {
+              const isLocked = l.id > highestLevel;
+              return (
+                <button
+                  key={l.id}
+                  onClick={() => !isLocked && startGame(l.id)}
+                  disabled={isLocked}
+                  className={`py-3 px-4 text-white text-lg font-bold rounded-xl transition-all relative z-50 ${isLocked ? 'bg-gray-400 cursor-not-allowed opacity-60 shadow-none' : getLevelColor(l.id) + ' cursor-pointer'}`}
+                  style={{ touchAction: 'manipulation' }}
+                >
+                  {l.text} {isLocked && '🔒'}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -345,6 +356,15 @@ export default function App() {
   }
 
   if (gameState === 'finished') {
+    const passed = correctFirstTry >= 7;
+    const isNewUnlock = passed && level === highestLevel;
+
+    if (isNewUnlock) {
+      const newHighest = level + 1;
+      setHighestLevel(newHighest);
+      localStorage.setItem('chameleonHighestLevel', newHighest.toString());
+    }
+
     return (
       <div className="min-h-screen bg-[#B3E5FC] flex flex-col items-center justify-center font-sans p-4 relative z-50">
         <div className="absolute top-4 right-4 z-50">
@@ -361,11 +381,20 @@ export default function App() {
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white p-8 md:p-12 rounded-3xl shadow-xl text-center max-w-lg w-full border-4 border-[#FFEB3B]"
         >
-          <h1 className="text-6xl md:text-8xl font-black text-[#FF9800] mb-4 drop-shadow-md">BRAVO !</h1>
-          <p className="text-2xl text-gray-700 mb-8 font-bold">Tu as terminé le niveau {level} avec succès !</p>
+          <h1 className="text-4xl md:text-6xl font-black text-[#FF9800] mb-4 drop-shadow-md">
+            {passed ? 'BRAVO !' : 'DOMMAGE !'}
+          </h1>
+          <p className="text-xl text-gray-700 mb-2 font-bold">
+            Score : {correctFirstTry} / 10
+          </p>
+          <p className="text-lg text-gray-600 mb-8">
+            {passed
+              ? `Tu as réussi le niveau ${level} ! Le niveau suivant est débloqué.`
+              : `Il te faut au moins 7 bonnes réponses du premier coup pentru a trece mai departe.`}
+          </p>
 
           <button onClick={() => setGameState('menu')} className="py-4 px-8 bg-[#4CAF50] hover:bg-[#43A047] text-white text-2xl font-bold rounded-xl shadow-[0_6px_0_#2E7D32] active:translate-y-1 active:shadow-[0_2px_0_#2E7D32] transition-all cursor-pointer relative z-50">
-            Menu Principal
+            {passed ? 'Continuer' : 'Réessayer'}
           </button>
         </motion.div>
       </div>
