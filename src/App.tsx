@@ -336,16 +336,14 @@ export default function App() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {levels.map(l => {
-              const isLocked = l.id > highestLevel;
               return (
                 <button
                   key={l.id}
-                  onClick={() => !isLocked && startGame(l.id)}
-                  disabled={isLocked}
-                  className={`py-3 px-4 text-white text-lg font-bold rounded-xl transition-all relative z-50 ${isLocked ? 'bg-gray-400 cursor-not-allowed opacity-60 shadow-none' : getLevelColor(l.id) + ' cursor-pointer'}`}
+                  onClick={() => startGame(l.id)}
+                  className={`py-3 px-4 text-white text-lg font-bold rounded-xl transition-all cursor-pointer relative z-50 ${getLevelColor(l.id)}`}
                   style={{ touchAction: 'manipulation' }}
                 >
-                  {l.text} {isLocked && '🔒'}
+                  {l.text}
                 </button>
               );
             })}
@@ -389,8 +387,8 @@ export default function App() {
           </p>
           <p className="text-lg text-gray-600 mb-8">
             {passed
-              ? `Tu as réussi le niveau ${level} ! Le niveau suivant est débloqué.`
-              : `Il te faut au moins 7 bonnes réponses du premier coup pentru a trece mai departe.`}
+              ? `Tu as réussi le niveau ${level} ! Bravo !`
+              : `Il te faut au moins 7 bonnes réponses du premier coup pour passer au niveau suivant.`}
           </p>
 
           <button onClick={() => setGameState('menu')} className="py-4 px-8 bg-[#4CAF50] hover:bg-[#43A047] text-white text-2xl font-bold rounded-xl shadow-[0_6px_0_#2E7D32] active:translate-y-1 active:shadow-[0_2px_0_#2E7D32] transition-all cursor-pointer relative z-50">
